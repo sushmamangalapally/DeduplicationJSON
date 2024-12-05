@@ -33,51 +33,46 @@ fs.readFile('leads.json', 'utf8', (err, data) => {
  * @returns {Array} Newly updated of deduped data
  */
 function deDuplicateJSONRecords(jsonLeadData) {
-    const hashIDMap = {};
-    const hashEmailMap = {};
+    const uniqueIDMap = {};
+    const uniqueEmailMap = {};
 
     for (let data of jsonLeadData) {
-        const dataID = data["_id"];
+        const id = data["_id"];
         // Check if hashmap for data ID exists and update
-        if (hashIDMap[dataID]) {
+        if (uniqueIDMap[id]) {
             const currentDate = new Date(data["entryDate"]);
-            const dataDate = new Date(hashIDMap[dataID]["entryDate"]);
+            const existingDate = new Date(uniqueIDMap[id]["entryDate"]);
             // Update if the current data is last updated
-            if (dataDate < currentDate) {
-                trackChange(dataID, JSON.stringify(hashIDMap[dataID]), JSON.stringify(data));
-                hashIDMap[dataID] = data;
+            if (currentDate >= existingDate) {
+                trackChange(id, JSON.stringify(uniqueIDMap[id]), JSON.stringify(data));
+                uniqueIDMap[id] = data;
             }
         } else {
-            hashIDMap[dataID] = data;
-        }
-
-
-        // Check if hashmap for data email exists and update
-        const dataEmail = data["email"];
-        if (hashEmailMap[dataEmail]) {
-            const currentDate = new Date(data["entryDate"]);
-            const dataDate = new Date(hashEmailMap[dataEmail]["entryDate"]);
-            // Update if the current data is last updated
-            if (dataDate < currentDate) {
-                trackChange(dataID, JSON.stringify(hashEmailMap[dataEmail]), JSON.stringify(data));
-                hashEmailMap[dataEmail] = data;
-            }
-        } else {
-            hashEmailMap[dataEmail] = data;
+            uniqueIDMap[id] = data;
         }
     }
 
-    const result = [];
-    // Then we check for both IDs and emails
-    const seenDataIds = new Set();
-    const seenDataEmails = new Set();
-    for (let dataID in hashIDMap) {
-        const dataItem = hashIDMap[dataID];
-        if (!seenDataIds.has(dataID) && !seenDataEmails.has(dataItem["email"])) {
-            result.push(hashIDMap[dataID]);
-            seenDataIds.add(dataID);
-            seenDataEmails.add(dataItem["email"]);
+    // Looping through hashset that was created from previous step
+    for (let dataID in uniqueIDMap) {
+        const data = uniqueIDMap[dataID];
+        const email = uniqueIDMap[dataID]["email"];
+        // Check if hashmap for data email exists and update
+        if (uniqueEmailMap[email]) {
+            const currentDate = new Date(data["entryDate"]);
+            const existingDate = new Date(uniqueEmailMap[email]["entryDate"]);
+            // Update if the current data is last updated
+            if (currentDate >= existingDate) {
+                trackChange(data["_id"], JSON.stringify(uniqueEmailMap[email]), JSON.stringify(data));
+                uniqueEmailMap[email] = data;
+            }
+        } else {
+            uniqueEmailMap[email] = data;
         }
+    }
+    const result = [];
+    // Then we add to result array
+    for (let data in uniqueEmailMap) {
+        result.push(uniqueEmailMap[data]);
     }
     return result;
 }
